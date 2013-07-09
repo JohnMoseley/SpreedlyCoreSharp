@@ -6,10 +6,12 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
-using EasyHttp.Http;
 using SpreedlyCoreSharp.Domain;
 using SpreedlyCoreSharp.Request;
 using SpreedlyCoreSharp.Response;
+using System.Net.Http;
+using System.Net;
+using System.Net.Http.Headers;
 
 namespace SpreedlyCoreSharp
 {
@@ -42,10 +44,9 @@ namespace SpreedlyCoreSharp
             _apiSigningSecret = apiSigningSecret;
             _gatewayToken = gatewayToken;
 
-            _client = new HttpClient();
-            _client.Request.SetBasicAuthentication(_apiEnvironment, _apiSecret);
-            _client.Request.Accept = HttpContentTypes.ApplicationXml;
-            _client.Request.ForceBasicAuth = true;
+            var credentials= new NetworkCredential(_apiEnvironment, _apiSecret);
+            _client = new HttpClient(new HttpClientHandler() { Credentials= credentials,}, true);
+            _client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/xml"));
         }
 
         /// <summary>
@@ -122,9 +123,11 @@ namespace SpreedlyCoreSharp
         /// <returns></returns>
         public Gateway AddGateway(object gatewayRequest)
         {
-            var response = _client.Post(BaseUrl + GatewaysUrl, gatewayRequest, "application/xml");
+            var content=new StringContent(gatewayRequest.ToString());
+            var result = _client.PostAsync(BaseUrl + GatewaysUrl, content).Result;            
+            var resultContent=result.Content.ReadAsStringAsync().Result;            
 
-            return Deserialize<Gateway>(response.RawText);
+            return Deserialize<Gateway>(resultContent);
         }
 
         /// <summary>
@@ -134,7 +137,8 @@ namespace SpreedlyCoreSharp
         public void RedactGateway(string gatewayToken)
         {
             // TODO: do something with response?
-            _client.Put(BaseUrl + string.Format(RedactGatewayUrl, gatewayToken), "", "application/xml");
+            var content = new StringContent("");
+            var result = _client.PutAsync(BaseUrl + string.Format(RedactGatewayUrl, gatewayToken), content).Result;
         }
 
         /// <summary>
@@ -143,9 +147,9 @@ namespace SpreedlyCoreSharp
         /// <returns></returns>
         public List<Gateway> GetGateways()
         {
-            var response = _client.Get(BaseUrl + GatewaysUrl);
+            var result = _client.GetStringAsync(BaseUrl + GatewaysUrl).Result;
 
-            var gateways = Deserialize<GetGatewaysResponse>(response.RawText);
+            var gateways = Deserialize<GetGatewaysResponse>(result);
 
             return gateways.Gateways;
         }
@@ -159,9 +163,9 @@ namespace SpreedlyCoreSharp
         {
             string url = BaseUrl + string.Format(TransactionUrl, token);
 
-            var response = _client.Get(url);
+            var resultText= _client.GetStringAsync(url).Result;
 
-            return Deserialize<Transaction>(response.RawText);
+            return Deserialize<Transaction>(resultText);
         }
 
         /// <summary>
@@ -182,9 +186,9 @@ namespace SpreedlyCoreSharp
                 url = string.Format("{0}{1}", BaseUrl, TransactionsUrl);
             }
 
-            var response = _client.Get(url);
+            var resultText = _client.GetStringAsync(url).Result;
 
-            var transactions = Deserialize<GetTransactionsResponse>(response.RawText);
+            var transactions = Deserialize<GetTransactionsResponse>(resultText);
 
             return transactions.Transactions;
         }
@@ -199,9 +203,9 @@ namespace SpreedlyCoreSharp
         {
             string url = BaseUrl + string.Format(TransactionTranscriptUrl, token);
 
-            var response = _client.Get(url);
+            var resultText = _client.GetStringAsync(url).Result;
 
-            return response.RawText;
+            return resultText;
         }
 
         /// <summary>
@@ -209,40 +213,40 @@ namespace SpreedlyCoreSharp
         /// </summary>
         /// <param name="request">purchase request</param>
         /// <returns></returns>
-        public Transaction ProcessPayment(ProcessPaymentRequest request)
+        public Transaction ProcessPayment(ProcessPaymentRequest aProcessPaymentRequest)
         {
-            var response = _client.Post(BaseUrl + string.Format(ProcessPaymentUrl, _gatewayToken), request, "application/xml");
+            var content = new StringContent(this.Serialize<ProcessPaymentRequest>(aProcessPaymentRequest), Encoding.UTF8, "application/xml");
+            var response = _client.PostAsync(BaseUrl + string.Format(ProcessPaymentUrl, _gatewayToken), content).Result;
 
-            if (request.Attempt3DSecure && string.IsNullOrWhiteSpace(request.CallbackUrl))
+            if (aProcessPaymentRequest.Attempt3DSecure && string.IsNullOrWhiteSpace(aProcessPaymentRequest.CallbackUrl))
             {
                 throw new ArgumentException("Callback URL cannot be empty.");
             }
 
-            if (request.Attempt3DSecure && string.IsNullOrWhiteSpace(request.RedirectUrl))
+            if (aProcessPaymentRequest.Attempt3DSecure && string.IsNullOrWhiteSpace(aProcessPaymentRequest.RedirectUrl))
             {
                 throw new ArgumentException("Redirect URL cannot be empty.");
             }
 
-            byte[] byteArray = Encoding.ASCII.GetBytes(response.RawText);
-
-            var stream = new MemoryStream(byteArray);
-
+            var resultText = response.Content.ReadAsStringAsync().Result;
             // Seems if you send absolutely nothing it decides to return <errors> rather than full <transaction> doc...
             // Not sure how to append this to a Transaction document.
-            if (response.RawText.StartsWith("<errors>"))
+            if (resultText.StartsWith("<errors>"))
             {
-                var errors = (TransactionErrors)new XmlSerializer(typeof(TransactionErrors)).Deserialize(stream);
+                var errors = Deserialize<TransactionErrors>(resultText);
 
                 return new Transaction
                 {
                     TransactionResponse = new Transaction.Response
                     {
-                        Success = false
+                        Success = false,
                     }
                 };
             }
-
-            return Deserialize<Transaction>(response.RawText);
+            else
+            {
+                return Deserialize<Transaction>(resultText);
+            }
         }
 
         /// <summary>
