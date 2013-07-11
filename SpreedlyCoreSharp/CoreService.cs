@@ -23,6 +23,7 @@ namespace SpreedlyCoreSharp
         private const string ProcessPaymentUrl = "gateways/{0}/purchase.xml";
         private const string TransactionsUrl = "transactions.xml";
         private const string TransactionUrl = "transactions/{0}.xml";
+        private const string PaymentMethodUrl = "payment_methods/{0}.xml";
         private const string TransactionTranscriptUrl = "transactions/{0}/transcript";
 
         private readonly HttpClient _client;
@@ -166,6 +167,20 @@ namespace SpreedlyCoreSharp
             var resultText= _client.GetStringAsync(url).Result;
 
             return Deserialize<Transaction>(resultText);
+        }
+
+        /// <summary>
+        /// Fetches a payment method
+        /// </summary>
+        /// <param name="token">token of transaction</param>
+        /// <returns></returns>
+        public PaymentMethod GetPaymentMethod(string token)
+        {
+            string url = BaseUrl + string.Format(PaymentMethodUrl, token);
+
+            var resultText = _client.GetStringAsync(url).Result;
+
+            return Deserialize<PaymentMethod>(resultText);
         }
 
         /// <summary>
