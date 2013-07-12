@@ -49,11 +49,27 @@ namespace SpreedlyCoreSharp.Domain
         [DefaultValue(CardType.None)]
         public CardType CardType { get; set; }
 
+        [XmlElement("bank_name")]
+        public string BankName { get; set; }
+
+        [XmlElement("account_type")]
+        [DefaultValue(BankAccountType.None)]
+        public BankAccountType BankAccountType { get; set; }
+
+        [XmlElement("account_number")]
+        public string BankAccountNumber { get; set; }
+
+        [XmlElement("routing_number")]
+        public string BankRoutingNumber { get; set; }
+
         [XmlElement("first_name")]
         public string FirstName { get; set; }
 
         [XmlElement("last_name")]
         public string LastName { get; set; }
+
+        [XmlElement("full_name")]
+        public string FullName { get; set; }
 
         [XmlElement("month")]
         [DefaultValue(0)]
