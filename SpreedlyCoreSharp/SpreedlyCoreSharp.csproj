@@ -89,6 +89,7 @@
     <Compile Include="Domain\TransactionErrors.cs" />
     <Compile Include="Domain\TransactionTranscript.cs" />
     <Compile Include="Domain\TransactionType.cs" />
+    <Compile Include="Extensions\EnumExtensions.cs" />
     <Compile Include="Html\TransactionViewModel.cs" />
     <Compile Include="ICoreService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

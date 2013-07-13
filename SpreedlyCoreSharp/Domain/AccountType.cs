@@ -5,6 +5,7 @@ namespace SpreedlyCoreSharp.Domain
 {
     public enum PaymentMethodType
     {
+        [Description("Unknown")]
         [XmlEnum("")]
         None = 0,
 
@@ -12,6 +13,7 @@ namespace SpreedlyCoreSharp.Domain
         [XmlEnum("credit_card")]
         CreditCard,
 
+        [Description("Credit Card")]
         [XmlEnum("sprel")]
         SPREL,
 
