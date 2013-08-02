@@ -24,6 +24,7 @@ namespace SpreedlyCoreSharp
         private const string TransactionsUrl = "transactions.xml";
         private const string TransactionUrl = "transactions/{0}.xml";
         private const string PaymentMethodUrl = "payment_methods/{0}.xml";
+        private const string PaymentMethodRetainUrl = "payment_methods/{0}/retain.xml";
         private const string TransactionTranscriptUrl = "transactions/{0}/transcript";
 
         private readonly HttpClient _client;
@@ -45,8 +46,10 @@ namespace SpreedlyCoreSharp
             _apiSigningSecret = apiSigningSecret;
             _gatewayToken = gatewayToken;
 
-            var credentials= new NetworkCredential(_apiEnvironment, _apiSecret);
-            _client = new HttpClient(new HttpClientHandler() { Credentials= credentials,}, true);
+            var handler = new HttpClientHandler();
+            handler.Credentials = new NetworkCredential(_apiEnvironment, _apiSecret);
+
+            _client = new HttpClient(handler, true);
             _client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/xml"));
         }
 
@@ -172,7 +175,7 @@ namespace SpreedlyCoreSharp
         /// <summary>
         /// Fetches a payment method
         /// </summary>
-        /// <param name="token">token of transaction</param>
+        /// <param name="token">token of payment method</param>
         /// <returns></returns>
         public PaymentMethod GetPaymentMethod(string token)
         {
@@ -181,6 +184,21 @@ namespace SpreedlyCoreSharp
             var resultText = _client.GetStringAsync(url).Result;
 
             return Deserialize<PaymentMethod>(resultText);
+        }
+
+        /// <summary>
+        /// Retains a payment method
+        /// </summary>
+        /// <param name="token">token payment method</param>
+        /// <returns></returns>
+        public Transaction RetainPaymentMethod(string token)
+        {
+            string url = BaseUrl + string.Format(PaymentMethodRetainUrl, token);
+
+            var response = _client.PutAsync(url, null).Result;
+            var resultText = response.Content.ReadAsStringAsync().Result;
+
+            return Deserialize<Transaction>(resultText);
         }
 
         /// <summary>
@@ -230,9 +248,19 @@ namespace SpreedlyCoreSharp
         /// <returns></returns>
         public Transaction ProcessPayment(ProcessPaymentRequest aProcessPaymentRequest)
         {
-            var content = new StringContent(this.Serialize<ProcessPaymentRequest>(aProcessPaymentRequest), Encoding.UTF8, "application/xml");
-            var response = _client.PostAsync(BaseUrl + string.Format(ProcessPaymentUrl, _gatewayToken), content).Result;
+            var data = this.Serialize<ProcessPaymentRequest>(aProcessPaymentRequest);
+            var content = new StringContent(data, Encoding.UTF8, "application/xml");
+            var url = BaseUrl + string.Format(ProcessPaymentUrl, _gatewayToken);
+            
+            WebClient client = new WebClient();
+            client.Credentials = new NetworkCredential(_apiEnvironment, _apiSecret);
+            client.Headers.Add(HttpRequestHeader.ContentType, "application/xml");
+            var resultText = client.UploadString(url, "POST", data);
 
+
+            //var response = _client.PostAsync(url, content).Result;
+            //var resultText = response.Content.ReadAsStringAsync().Result;
+            
             if (aProcessPaymentRequest.Attempt3DSecure && string.IsNullOrWhiteSpace(aProcessPaymentRequest.CallbackUrl))
             {
                 throw new ArgumentException("Callback URL cannot be empty.");
@@ -243,7 +271,7 @@ namespace SpreedlyCoreSharp
                 throw new ArgumentException("Redirect URL cannot be empty.");
             }
 
-            var resultText = response.Content.ReadAsStringAsync().Result;
+
             // Seems if you send absolutely nothing it decides to return <errors> rather than full <transaction> doc...
             // Not sure how to append this to a Transaction document.
             if (resultText.StartsWith("<errors>"))
