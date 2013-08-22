@@ -255,7 +255,23 @@ namespace SpreedlyCoreSharp
             WebClient client = new WebClient();
             client.Credentials = new NetworkCredential(_apiEnvironment, _apiSecret);
             client.Headers.Add(HttpRequestHeader.ContentType, "application/xml");
-            var resultText = client.UploadString(url, "POST", data);
+
+            string resultText = "";
+            try
+            {
+                resultText = client.UploadString(url, "POST", data);
+            }
+            catch (WebException wex)
+            {
+                var response = wex.Response.GetResponseStream();
+                StreamReader sr = new StreamReader(response);
+                resultText = sr.ReadToEnd();
+
+                if (!resultText.StartsWith("<errors>"))
+                {
+                    var tran = Deserialize<Transaction>(resultText);
+                }
+            }
 
 
             //var response = _client.PostAsync(url, content).Result;
