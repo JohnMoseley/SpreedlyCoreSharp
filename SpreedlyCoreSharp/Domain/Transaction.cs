@@ -34,6 +34,13 @@ namespace SpreedlyCoreSharp.Domain
             [XmlElement("error_details")]
             public string ErrorDetail { get; set; }
 
+            /// <summary>
+            /// Constructed
+            /// </summary>
+            [XmlElement("errors")]
+            public TransactionErrors Errors { get; set; }
+    
+
             [XmlElement("created_at")]
             public DateTime CreatedAt { get; set; }
 
@@ -228,5 +235,6 @@ namespace SpreedlyCoreSharp.Domain
         /// The raw XML for this Transaction
         /// </summary>
         public string RawTransactionXml { get; set; }
+
     }
 }

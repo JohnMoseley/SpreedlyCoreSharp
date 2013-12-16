@@ -246,13 +246,13 @@ namespace SpreedlyCoreSharp
         /// </summary>
         /// <param name="request">purchase request</param>
         /// <returns></returns>
-        public Transaction ProcessPayment(ProcessPaymentRequest aProcessPaymentRequest)
+        public Transaction ProcessPayment(ProcessPaymentRequest processPaymentRequest)
         {
-            var data = this.Serialize<ProcessPaymentRequest>(aProcessPaymentRequest);
+            var data = this.Serialize<ProcessPaymentRequest>(processPaymentRequest);
             var content = new StringContent(data, Encoding.UTF8, "application/xml");
             var url = BaseUrl + string.Format(ProcessPaymentUrl, _gatewayToken);
             
-            WebClient client = new WebClient();
+            var client = new WebClient();
             client.Credentials = new NetworkCredential(_apiEnvironment, _apiSecret);
             client.Headers.Add(HttpRequestHeader.ContentType, "application/xml");
 
@@ -264,29 +264,31 @@ namespace SpreedlyCoreSharp
             catch (WebException wex)
             {
                 var response = wex.Response.GetResponseStream();
-                StreamReader sr = new StreamReader(response);
-                resultText = sr.ReadToEnd();
+                var reader= new StreamReader(response);
+                resultText = reader.ReadToEnd();
 
-                if (!resultText.StartsWith("<errors>"))
+                return new Transaction
                 {
-                    var tran = Deserialize<Transaction>(resultText);
-                }
+                    TransactionResponse = new Transaction.Response
+                    {
+                        ErrorDetail = resultText,
+                        Success = false
+                    },
+                };
             }
-
 
             //var response = _client.PostAsync(url, content).Result;
             //var resultText = response.Content.ReadAsStringAsync().Result;
             
-            if (aProcessPaymentRequest.Attempt3DSecure && string.IsNullOrWhiteSpace(aProcessPaymentRequest.CallbackUrl))
+            if (processPaymentRequest.Attempt3DSecure && string.IsNullOrWhiteSpace(processPaymentRequest.CallbackUrl))
             {
                 throw new ArgumentException("Callback URL cannot be empty.");
             }
 
-            if (aProcessPaymentRequest.Attempt3DSecure && string.IsNullOrWhiteSpace(aProcessPaymentRequest.RedirectUrl))
+            if (processPaymentRequest.Attempt3DSecure && string.IsNullOrWhiteSpace(processPaymentRequest.RedirectUrl))
             {
                 throw new ArgumentException("Redirect URL cannot be empty.");
             }
-
 
             // Seems if you send absolutely nothing it decides to return <errors> rather than full <transaction> doc...
             // Not sure how to append this to a Transaction document.
@@ -297,9 +299,11 @@ namespace SpreedlyCoreSharp
                 return new Transaction
                 {
                     TransactionResponse = new Transaction.Response
-                    {
-                        Success = false,
-                    }
+                    {                       
+                        ErrorDetail=resultText,
+                        Errors=errors,
+                        Success = false
+                    },                    
                 };
             }
             else
