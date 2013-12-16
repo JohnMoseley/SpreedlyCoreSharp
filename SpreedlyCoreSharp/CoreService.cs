@@ -17,15 +17,15 @@ namespace SpreedlyCoreSharp
 {
     public class CoreService : ICoreService
     {
-        private const string BaseUrl = "https://spreedlycore.com/v1/";
-        private const string GatewaysUrl = "gateways.xml";
-        private const string RedactGatewayUrl = "gateways/{0}/redact.xml";
-        private const string ProcessPaymentUrl = "gateways/{0}/purchase.xml";
-        private const string TransactionsUrl = "transactions.xml";
-        private const string TransactionUrl = "transactions/{0}.xml";
-        private const string PaymentMethodUrl = "payment_methods/{0}.xml";
-        private const string PaymentMethodRetainUrl = "payment_methods/{0}/retain.xml";
-        private const string TransactionTranscriptUrl = "transactions/{0}/transcript";
+        private const string BaseUrl = "https://core.spreedly.com";
+        private const string GatewaysUrl = "/v1/gateways.xml";
+        private const string RedactGatewayUrl = "/v1/gateways/{0}/redact.xml";
+        private const string ProcessPaymentUrl = "/v1/gateways/{0}/purchase.xml";
+        private const string TransactionsUrl = "/v1/transactions.xml";
+        private const string TransactionUrl = "/v1/transactions/{0}.xml";
+        private const string PaymentMethodUrl = "/v1/payment_methods/{0}.xml";
+        private const string PaymentMethodRetainUrl = "/v1/payment_methods/{0}/retain.xml";
+        private const string TransactionTranscriptUrl = "/v1/transactions/{0}/transcript";
 
         private readonly HttpClient _client;
 
