@@ -267,14 +267,11 @@ namespace SpreedlyCoreSharp
                 var reader= new StreamReader(response);
                 resultText = reader.ReadToEnd();
 
-                return new Transaction
-                {
-                    TransactionResponse = new Transaction.Response
-                    {
-                        ErrorDetail = resultText,
-                        Success = false
-                    },
-                };
+                var transaction = this.Deserialize<Transaction>(resultText);
+
+                transaction.TransactionResponse.ErrorDetail = resultText;
+
+                return transaction;
             }
 
             //var response = _client.PostAsync(url, content).Result;
