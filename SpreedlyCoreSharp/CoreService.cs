@@ -41,6 +41,8 @@ namespace SpreedlyCoreSharp
 
         public CoreService(string apiEnvironment, string apiSecret, string apiSigningSecret, string gatewayToken)
         {
+            System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
             _apiEnvironment = apiEnvironment;
             _apiSecret = apiSecret;
             _apiSigningSecret = apiSigningSecret;
